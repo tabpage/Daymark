@@ -75,6 +75,12 @@
     .text-input::placeholder { color: #a0a4b5; }
     .composer-main .text-input { flex: 1; }
     .composer-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 11px; }
+    .category-tools { display: flex; align-items: flex-end; gap: 10px; margin-top: 11px; }
+    .category-tools label { flex: 1; min-width: 0; }
+    .category-tools .button { flex: 0 0 auto; }
+    .category-delete-tools { display: flex; align-items: flex-end; gap: 10px; margin-top: 10px; }
+    .category-delete-tools label { flex: 1; min-width: 0; }
+    .category-delete-tools .button { flex: 0 0 auto; }
     .field-label { display: block; margin: 0 0 5px 2px; color: var(--muted); font-size: 11px; font-weight: 700; }
     .composer-fields[hidden], [hidden] { display: none !important; }
 
@@ -116,6 +122,7 @@
     .empty-state strong { display: block; font-size: 14px; }
     .empty-state p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
     .list-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0 3px; border-top: 1px solid #f0f1f5; color: var(--muted); font-size: 11px; }
+    .footer-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
     .upgrade-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 17px; padding: 19px 21px; border: 1px solid #e2dfff; border-radius: 17px; background: linear-gradient(110deg, #f2f0ff, #fbfaff); }
     .upgrade-card h3 { margin: 0; font-size: 14px; }
     .upgrade-card p { margin: 4px 0 0; color: #74738d; font-size: 12px; }
@@ -144,6 +151,9 @@
       .composer-main { flex-direction: column; }
       .composer-main .button { width: 100%; }
       .composer-fields { grid-template-columns: 1fr; }
+      .category-tools { align-items: stretch; flex-direction: column; }
+      .category-tools .button, .category-delete-tools .button { width: 100%; }
+      .category-delete-tools { align-items: stretch; flex-direction: column; }
       .overview { padding: 16px; }
       .list-panel { padding: 16px 14px 10px; }
       .list-toolbar { align-items: flex-start; flex-direction: column; }
@@ -186,9 +196,7 @@
         </div>
         <div class="composer-fields" id="proFields" hidden>
           <label><span class="field-label">Category</span>
-            <select class="select-input" id="categoryInput">
-              <option>Personal</option><option>Work</option><option>Study</option><option>Other</option>
-            </select>
+            <select class="select-input" id="categoryInput" aria-label="Task category"></select>
           </label>
           <label><span class="field-label">Due date</span>
             <input class="text-input" id="dueInput" type="date" aria-label="Due date">
@@ -198,6 +206,20 @@
               <option value="medium">Medium priority</option><option value="high">High priority</option><option value="low">Low priority</option>
             </select>
           </label>
+        </div>
+        <div class="category-tools" id="categoryTools" hidden>
+          <label for="newCategoryInput">
+            <span class="field-label">Create a custom category</span>
+            <input class="text-input" id="newCategoryInput" type="text" maxlength="40" placeholder="e.g. Health, Projects, Errands" autocomplete="off">
+          </label>
+          <button class="button button-secondary button-small" id="addCategoryButton" type="button">+ Add category</button>
+        </div>
+        <div class="category-delete-tools" id="categoryDeleteTools" hidden>
+          <label for="deleteCategoryInput">
+            <span class="field-label">Delete a custom category</span>
+            <select class="select-input" id="deleteCategoryInput" aria-label="Choose a custom category to delete"></select>
+          </label>
+          <button class="button button-secondary button-small" id="deleteCategoryButton" type="button">Delete category</button>
         </div>
       </form>
     </section>
@@ -232,7 +254,9 @@
       </div>
       <div class="list-footer">
         <span id="listCount">0 tasks</span>
-        <div>
+        <div class="footer-actions">
+          <input id="importInput" type="file" accept=".csv,text/csv" hidden aria-label="Choose a Daymark CSV file to import">
+          <button class="button button-quiet button-small" id="importButton" type="button" hidden>Import CSV</button>
           <button class="button button-quiet button-small" id="exportButton" type="button" hidden>Export CSV</button>
           <button class="button button-quiet button-small" id="clearCompletedButton" type="button">Clear completed</button>
         </div>
@@ -242,7 +266,7 @@
     <section class="upgrade-card" id="upgradeCard" aria-label="Upgrade to Pro">
       <div>
         <h3>Make your workflow work harder.</h3>
-        <p>Get unlimited tasks, priorities, due dates, categories, search and CSV export.</p>
+        <p>Get unlimited tasks, custom categories, due dates, priorities, search and CSV import and export.</p>
       </div>
       <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap">
         <span class="price">Pro · $20</span>
@@ -281,14 +305,24 @@
     // who opens this file or inspects the browser. Use server-side verification for production.
     const PRO_ACCESS_PASSWORD = 'Hello!@dmin122130147425160258728190369';
     const TASKS_STORAGE_KEY = 'daymark.tasks.v1';
+    const CATEGORIES_STORAGE_KEY = 'daymark.categories.v1';
     const PRO_STORAGE_KEY = 'daymark.pro.v1';
+    const DEFAULT_CATEGORIES = ['Personal', 'Work', 'Study', 'Other'];
     const FREE_ACTIVE_TASK_LIMIT = 5;
+    const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024;
+    const MAX_IMPORT_ROWS = 5000;
 
     const elements = {
       taskForm: document.getElementById('taskForm'),
       taskInput: document.getElementById('taskInput'),
       proFields: document.getElementById('proFields'),
       categoryInput: document.getElementById('categoryInput'),
+      categoryTools: document.getElementById('categoryTools'),
+      newCategoryInput: document.getElementById('newCategoryInput'),
+      addCategoryButton: document.getElementById('addCategoryButton'),
+      categoryDeleteTools: document.getElementById('categoryDeleteTools'),
+      deleteCategoryInput: document.getElementById('deleteCategoryInput'),
+      deleteCategoryButton: document.getElementById('deleteCategoryButton'),
       dueInput: document.getElementById('dueInput'),
       priorityInput: document.getElementById('priorityInput'),
       taskList: document.getElementById('taskList'),
@@ -305,6 +339,8 @@
       planPill: document.getElementById('planPill'),
       planLabel: document.getElementById('planLabel'),
       searchInput: document.getElementById('searchInput'),
+      importInput: document.getElementById('importInput'),
+      importButton: document.getElementById('importButton'),
       exportButton: document.getElementById('exportButton'),
       clearCompletedButton: document.getElementById('clearCompletedButton'),
       upgradeCard: document.getElementById('upgradeCard'),
@@ -315,6 +351,7 @@
       toast: document.getElementById('toast')
     };
 
+    let categories = loadCategories();
     let tasks = loadTasks();
     let isPro = readProStatus();
     let activeFilter = 'all';
@@ -331,21 +368,58 @@
       catch (error) { console.warn('Could not save data:', error); showToast('Browser storage is unavailable. Your changes may not persist.'); return false; }
     }
 
+    function cleanCategoryName(value) {
+      return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 40) : '';
+    }
+
+    function findCategory(value) {
+      const normalized = cleanCategoryName(value).toLocaleLowerCase();
+      return categories.find(category => category.toLocaleLowerCase() === normalized) || '';
+    }
+
+    function loadCategories() {
+      const loaded = [...DEFAULT_CATEGORIES];
+      const raw = safeStorageGet(CATEGORIES_STORAGE_KEY);
+      if (!raw) return loaded;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(value => {
+            const name = cleanCategoryName(value);
+            if (name && !loaded.some(category => category.toLocaleLowerCase() === name.toLocaleLowerCase())) loaded.push(name);
+          });
+        }
+      } catch (error) {
+        console.warn('Saved categories could not be read:', error);
+      }
+      return loaded;
+    }
+
+    function saveCategories() { safeStorageSet(CATEGORIES_STORAGE_KEY, JSON.stringify(categories)); }
+
     function loadTasks() {
       const raw = safeStorageGet(TASKS_STORAGE_KEY);
       if (!raw) return [];
       try {
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
-        return parsed.filter(item => item && typeof item.title === 'string').map(item => ({
-          id: typeof item.id === 'string' ? item.id : createId(),
-          title: item.title.slice(0, 120),
-          completed: Boolean(item.completed),
-          createdAt: Number(item.createdAt) || Date.now(),
-          category: ['Personal', 'Work', 'Study', 'Other'].includes(item.category) ? item.category : 'Personal',
-          dueDate: typeof item.dueDate === 'string' ? item.dueDate : '',
-          priority: ['low', 'medium', 'high'].includes(item.priority) ? item.priority : 'medium'
-        }));
+        return parsed.filter(item => item && typeof item.title === 'string').map(item => {
+          const savedCategory = cleanCategoryName(item.category) || 'Personal';
+          let category = findCategory(savedCategory);
+          if (!category) {
+            categories.push(savedCategory);
+            category = savedCategory;
+          }
+          return {
+            id: typeof item.id === 'string' ? item.id : createId(),
+            title: item.title.slice(0, 120),
+            completed: Boolean(item.completed),
+            createdAt: Number(item.createdAt) || Date.now(),
+            category,
+            dueDate: typeof item.dueDate === 'string' ? item.dueDate : '',
+            priority: ['low', 'medium', 'high'].includes(item.priority) ? item.priority : 'medium'
+          };
+        });
       } catch (error) {
         console.warn('Saved tasks could not be read:', error);
         return [];
@@ -379,6 +453,72 @@
       if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
     }
 
+    function renderCategoryOptions(selectedValue) {
+      const selected = findCategory(selectedValue) || 'Personal';
+      elements.categoryInput.replaceChildren();
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        elements.categoryInput.appendChild(option);
+      });
+      elements.categoryInput.value = selected;
+    }
+
+    function renderDeletableCategories() {
+      const customCategories = categories.filter(category => !DEFAULT_CATEGORIES.includes(category));
+      const selected = elements.deleteCategoryInput.value;
+      elements.deleteCategoryInput.replaceChildren();
+      customCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        elements.deleteCategoryInput.appendChild(option);
+      });
+      elements.categoryDeleteTools.hidden = !isPro || customCategories.length === 0;
+      if (customCategories.includes(selected)) elements.deleteCategoryInput.value = selected;
+    }
+
+    function deleteCustomCategory() {
+      if (!isPro) return;
+      const category = findCategory(elements.deleteCategoryInput.value);
+      if (!category || DEFAULT_CATEGORIES.includes(category)) return;
+      const affectedTasks = tasks.filter(task => task.category.toLocaleLowerCase() === category.toLocaleLowerCase()).length;
+      categories = categories.filter(item => item.toLocaleLowerCase() !== category.toLocaleLowerCase());
+      tasks.forEach(task => {
+        if (task.category.toLocaleLowerCase() === category.toLocaleLowerCase()) task.category = 'Personal';
+      });
+      saveCategories();
+      saveTasks();
+      renderCategoryOptions('Personal');
+      renderDeletableCategories();
+      render();
+      showToast(`Category “${category}” deleted. ${affectedTasks} ${affectedTasks === 1 ? 'task was' : 'tasks were'} moved to Personal.`);
+    }
+
+    function addCustomCategory() {
+      if (!isPro) return;
+      const name = cleanCategoryName(elements.newCategoryInput.value);
+      if (!name) {
+        elements.newCategoryInput.focus();
+        showToast('Enter a category name first.');
+        return;
+      }
+      const existing = findCategory(name);
+      if (existing) {
+        renderCategoryOptions(existing);
+        elements.newCategoryInput.value = '';
+        showToast('That category already exists.');
+        return;
+      }
+      categories.push(name);
+      saveCategories();
+      renderCategoryOptions(name);
+      elements.newCategoryInput.value = '';
+      renderDeletableCategories();
+      showToast(`Category “${name}” added.`);
+    }
+
     function updateModeUI() {
       elements.planPill.classList.toggle('pro', isPro);
       elements.planLabel.textContent = isPro ? 'Pro plan' : 'Free plan';
@@ -386,7 +526,10 @@
       document.getElementById('openUpgradeButton').disabled = isPro;
       document.getElementById('openUpgradeButton').classList.toggle('button-secondary', isPro);
       elements.proFields.hidden = !isPro;
+      elements.categoryTools.hidden = !isPro;
+      renderDeletableCategories();
       elements.searchInput.hidden = !isPro;
+      elements.importButton.hidden = !isPro;
       elements.exportButton.hidden = !isPro;
       elements.upgradeCard.hidden = isPro;
       elements.clearCompletedButton.hidden = tasks.every(task => !task.completed);
@@ -492,6 +635,7 @@
       }
       elements.listCount.textContent = `${visible.length} ${visible.length === 1 ? 'task' : 'tasks'} shown`;
       elements.clearCompletedButton.hidden = completed === 0;
+      renderCategoryOptions(elements.categoryInput.value || 'Personal');
       updateModeUI();
     }
 
@@ -533,6 +677,14 @@
     });
 
     elements.searchInput.addEventListener('input', render);
+    elements.addCategoryButton.addEventListener('click', addCustomCategory);
+    elements.deleteCategoryButton.addEventListener('click', deleteCustomCategory);
+    elements.newCategoryInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addCustomCategory();
+      }
+    });
     elements.clearCompletedButton.addEventListener('click', () => {
       const completedCount = tasks.filter(task => task.completed).length;
       if (!completedCount) return;
@@ -561,6 +713,124 @@
     }
     elements.exportButton.addEventListener('click', exportCSV);
 
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let inQuotes = false;
+      const source = String(text || '').replace(/^\uFEFF/, '');
+
+      for (let index = 0; index < source.length; index += 1) {
+        const character = source[index];
+        if (inQuotes) {
+          if (character === '"' && source[index + 1] === '"') {
+            field += '"';
+            index += 1;
+          } else if (character === '"') {
+            inQuotes = false;
+          } else {
+            field += character;
+          }
+        } else if (character === '"' && field.length === 0) {
+          inQuotes = true;
+        } else if (character === ',') {
+          row.push(field);
+          field = '';
+        } else if (character === '\n' || character === '\r') {
+          if (character === '\r' && source[index + 1] === '\n') index += 1;
+          row.push(field);
+          if (row.some(value => value.trim() !== '')) rows.push(row);
+          row = [];
+          field = '';
+        } else {
+          field += character;
+        }
+      }
+
+      if (inQuotes) throw new Error('The CSV file has an unfinished quoted field.');
+      row.push(field);
+      if (row.some(value => value.trim() !== '')) rows.push(row);
+      return rows;
+    }
+
+    function isValidDateString(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const [year, month, day] = value.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+    }
+
+    function importCSVText(text) {
+      const rows = parseCSV(text);
+      if (rows.length < 2) throw new Error('The CSV file does not contain any task rows.');
+
+      const normalizeHeader = value => String(value || '').trim().toLocaleLowerCase().replace(/[^a-z]/g, '');
+      const headers = rows[0].map(normalizeHeader);
+      const columnIndex = aliases => headers.findIndex(header => aliases.includes(header));
+      const taskColumn = columnIndex(['task', 'title', 'name']);
+      if (taskColumn < 0) throw new Error('Could not find a Task or Title column in this CSV.');
+
+      const completedColumn = columnIndex(['completed', 'done', 'iscompleted']);
+      const categoryColumn = columnIndex(['category']);
+      const priorityColumn = columnIndex(['priority']);
+      const dueDateColumn = columnIndex(['duedate', 'due']);
+      const importedTasks = [];
+      let skipped = 0;
+
+      rows.slice(1).forEach(values => {
+        const title = String(values[taskColumn] || '').trim();
+        if (!title) { skipped += 1; return; }
+        if (importedTasks.length >= MAX_IMPORT_ROWS) { skipped += 1; return; }
+
+        const rawCategory = categoryColumn >= 0 ? cleanCategoryName(values[categoryColumn]) : '';
+        let category = rawCategory ? findCategory(rawCategory) : 'Personal';
+        if (rawCategory && !category) {
+          category = rawCategory;
+          categories.push(category);
+        }
+
+        const completionValue = completedColumn >= 0 ? String(values[completedColumn] || '').trim().toLocaleLowerCase() : '';
+        const priorityValue = priorityColumn >= 0 ? String(values[priorityColumn] || '').trim().toLocaleLowerCase() : 'medium';
+        const dueValue = dueDateColumn >= 0 ? String(values[dueDateColumn] || '').trim() : '';
+        importedTasks.push({
+          id: createId(),
+          title: title.slice(0, 120),
+          completed: ['yes', 'true', '1', 'completed', 'done'].includes(completionValue),
+          createdAt: Date.now(),
+          category: category || 'Personal',
+          dueDate: isValidDateString(dueValue) ? dueValue : '',
+          priority: ['low', 'medium', 'high'].includes(priorityValue) ? priorityValue : 'medium'
+        });
+      });
+
+      if (!importedTasks.length) throw new Error('No valid task rows were found in this CSV.');
+      tasks = [...importedTasks, ...tasks];
+      saveCategories();
+      saveTasks();
+      render();
+      return { imported: importedTasks.length, skipped };
+    }
+
+    elements.importButton.addEventListener('click', () => {
+      if (isPro) elements.importInput.click();
+    });
+
+    elements.importInput.addEventListener('change', async () => {
+      const file = elements.importInput.files && elements.importInput.files[0];
+      if (!file) return;
+      try {
+        if (file.size > MAX_IMPORT_FILE_SIZE) throw new Error('Please choose a CSV file smaller than 5 MB.');
+        const result = importCSVText(await file.text());
+        const skippedMessage = result.skipped ? ` ${result.skipped} empty or extra rows were skipped.` : '';
+        showToast(`${result.imported} ${result.imported === 1 ? 'task' : 'tasks'} imported and added to your list.${skippedMessage}`);
+      } catch (error) {
+        console.warn('CSV import failed:', error);
+        showToast(error && error.message ? error.message : 'The CSV file could not be imported.');
+      } finally {
+        elements.importInput.value = '';
+      }
+    });
+
     function showUpgrade() {
       if (!isPro) openUpgradeModal('');
     }
@@ -588,6 +858,9 @@
       }
     });
 
+    if (safeStorageGet(CATEGORIES_STORAGE_KEY) === null) saveCategories();
+    renderCategoryOptions('Personal');
+    renderDeletableCategories();
     render();
   </script>
 </body>
