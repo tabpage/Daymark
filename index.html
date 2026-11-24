@@ -1,678 +1,594 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Modern To-Do List</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Import Google Noto Sans */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
-        
-        :root {
-            /* Dark Theme Defaults */
-            --bg-body: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            --card-bg: rgba(30, 41, 59, 0.9);
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --border-color: #334155;
-            --input-bg: rgba(15, 23, 42, 0.5);
-            --item-hover: rgba(255, 255, 255, 0.03);
-            --accent-blue: #3b82f6;
-            --accent-blue-hover: #60a5fa;
-            --footer-bg: rgba(15, 23, 42, 0.4);
-        }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7fb">
+  <meta name="description" content="Daymark is a simple to-do list with Free and Pro modes.">
+  <title>Daymark — To-do list</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --surface: #ffffff;
+      --ink: #20243a;
+      --muted: #737991;
+      --line: #e8eaf2;
+      --primary: #6657e8;
+      --primary-dark: #5143cc;
+      --primary-soft: #f0efff;
+      --green: #1b9a70;
+      --green-soft: #e8f7f1;
+      --amber: #a66c13;
+      --amber-soft: #fff5df;
+      --red: #c34f5b;
+      --shadow: 0 18px 48px rgba(35, 39, 70, .08);
+      --radius: 20px;
+    }
 
-        [data-theme="light"] {
-            --bg-body: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --text-main: #0f172a;
-            --text-sub: #64748b;
-            --border-color: #e2e8f0;
-            --input-bg: #f1f5f9;
-            --item-hover: rgba(0, 0, 0, 0.02);
-            --accent-blue: #2563eb;
-            --accent-blue-hover: #1d4ed8;
-            --footer-bg: rgba(241, 245, 249, 0.6);
-        }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 12% 0%, #eeedff 0, transparent 28rem), var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(102, 87, 232, .25);
+      outline-offset: 2px;
+    }
+    .page { width: min(100% - 32px, 900px); margin: 0 auto; padding: 34px 0 56px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 52px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 18px; font-weight: 780; letter-spacing: -.04em; }
+    .brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: var(--primary); box-shadow: 0 6px 15px rgba(102,87,232,.25); }
+    .brand-mark svg { width: 19px; height: 19px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .plan-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.75); color: var(--muted); font-size: 12px; font-weight: 700; }
+    .plan-dot { width: 7px; height: 7px; border-radius: 50%; background: #969bad; }
+    .plan-pill.pro { color: #5143cc; background: var(--primary-soft); border-color: #dedbff; }
+    .plan-pill.pro .plan-dot { background: var(--primary); }
+    .button { border: 0; border-radius: 12px; padding: 10px 15px; font-weight: 700; transition: transform .15s ease, background .15s ease, box-shadow .15s ease; }
+    .button:hover { transform: translateY(-1px); }
+    .button-primary { color: white; background: var(--primary); box-shadow: 0 7px 16px rgba(102,87,232,.18); }
+    .button-primary:hover { background: var(--primary-dark); }
+    .button-secondary { color: var(--ink); background: #f1f2f7; }
+    .button-secondary:hover { background: #e9eaf2; }
+    .button-quiet { color: var(--muted); background: transparent; padding: 8px 10px; }
+    .button-quiet:hover { color: var(--ink); background: #f3f3f8; }
+    .button-small { padding: 8px 11px; font-size: 13px; }
 
-        body {
-            font-family: 'Noto Sans', sans-serif;
-            background: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            margin: 0;
-            transition: background 0.4s ease, color 0.4s ease;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
+    .intro { margin-bottom: 27px; }
+    .eyebrow { margin: 0 0 10px; color: var(--primary); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(34px, 6vw, 48px); line-height: 1.08; letter-spacing: -.055em; }
+    .subtitle { margin: 12px 0 0; color: var(--muted); font-size: 15px; }
 
-        .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
-            border-radius: 32px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
-            transition: background 0.4s ease, border 0.4s ease;
-        }
+    .panel { background: var(--surface); border: 1px solid rgba(230,232,241,.9); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .composer { padding: 18px; margin-bottom: 17px; }
+    .composer-main { display: flex; gap: 10px; }
+    .text-input, .select-input {
+      min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px;
+      color: var(--ink); background: #fff;
+    }
+    .text-input::placeholder { color: #a0a4b5; }
+    .composer-main .text-input { flex: 1; }
+    .composer-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 11px; }
+    .field-label { display: block; margin: 0 0 5px 2px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .composer-fields[hidden], [hidden] { display: none !important; }
 
-        .todo-item {
-            transition: all 0.2s ease;
-            border-bottom: 1px solid var(--border-color);
-            animation: fadeIn 0.3s ease-out;
-        }
+    .overview { padding: 18px 20px 16px; margin-bottom: 17px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .stat-label { color: var(--muted); font-size: 12px; }
+    .stat-value { display: block; margin-top: 1px; font-size: 23px; font-weight: 780; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .progress-head { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0 8px; color: var(--muted); font-size: 12px; }
+    .progress-track { height: 7px; overflow: hidden; border-radius: 20px; background: #f0f0f6; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8a7cf5, var(--primary)); transition: width .25s ease; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    .list-panel { padding: 19px 20px 10px; }
+    .list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .list-toolbar h2 { margin: 0; font-size: 17px; letter-spacing: -.025em; }
+    .toolbar-right { display: flex; align-items: center; gap: 8px; }
+    .search-input { width: 175px; padding: 8px 10px; font-size: 13px; }
+    .filters { display: flex; gap: 4px; padding: 4px; border-radius: 11px; background: #f5f5f9; }
+    .filter-button { border: 0; border-radius: 8px; padding: 7px 10px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 700; }
+    .filter-button[aria-pressed="true"] { color: var(--primary-dark); background: white; box-shadow: 0 2px 6px rgba(30,35,65,.08); }
+    .task-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+    .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 2px; border-top: 1px solid #f0f1f5; }
+    .task-check { width: 19px; height: 19px; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--primary); cursor: pointer; }
+    .task-content { flex: 1; min-width: 0; }
+    .task-title { display: block; overflow-wrap: anywhere; font-weight: 650; }
+    .task-item.completed .task-title { color: #a1a5b3; text-decoration: line-through; }
+    .task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+    .tag { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; color: #74798e; background: #f3f4f8; font-size: 10px; font-weight: 750; }
+    .tag.priority-high { color: #b34c59; background: #fff0f1; }
+    .tag.priority-medium { color: #96600d; background: var(--amber-soft); }
+    .tag.priority-low { color: #287d62; background: var(--green-soft); }
+    .tag.overdue { color: #b34c59; background: #fff0f1; }
+    .tag.due-soon { color: #96600d; background: var(--amber-soft); }
+    .delete-button { width: 31px; height: 31px; display: grid; flex: 0 0 auto; place-items: center; border: 0; border-radius: 9px; color: #a2a6b4; background: transparent; }
+    .delete-button:hover { color: var(--red); background: #fff1f2; }
+    .delete-button svg { width: 16px; height: 16px; }
+    .empty-state { padding: 38px 12px 42px; text-align: center; }
+    .empty-icon { width: 45px; height: 45px; display: grid; place-items: center; margin: 0 auto 12px; border-radius: 15px; color: var(--primary); background: var(--primary-soft); }
+    .empty-icon svg { width: 22px; height: 22px; }
+    .empty-state strong { display: block; font-size: 14px; }
+    .empty-state p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+    .list-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0 3px; border-top: 1px solid #f0f1f5; color: var(--muted); font-size: 11px; }
+    .upgrade-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 17px; padding: 19px 21px; border: 1px solid #e2dfff; border-radius: 17px; background: linear-gradient(110deg, #f2f0ff, #fbfaff); }
+    .upgrade-card h3 { margin: 0; font-size: 14px; }
+    .upgrade-card p { margin: 4px 0 0; color: #74738d; font-size: 12px; }
+    .price { color: var(--primary-dark); font-weight: 800; white-space: nowrap; }
+    .footer-note { margin: 22px 0 0; color: #9a9eac; text-align: center; font-size: 11px; }
 
-        .todo-item:last-child {
-            border-bottom: none;
-        }
+    .modal-backdrop { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(24,26,45,.44); backdrop-filter: blur(5px); }
+    .modal { width: min(100%, 420px); padding: 25px; border: 1px solid rgba(255,255,255,.6); border-radius: 22px; background: white; box-shadow: 0 24px 80px rgba(20,22,50,.25); }
+    .modal-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .modal-icon { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 14px; border-radius: 14px; color: var(--primary); background: var(--primary-soft); }
+    .modal-icon svg { width: 21px; height: 21px; }
+    .modal h2 { margin: 0; font-size: 22px; letter-spacing: -.04em; }
+    .modal-copy { margin: 8px 0 18px; color: var(--muted); font-size: 13px; }
+    .close-button { width: 32px; height: 32px; border: 0; border-radius: 9px; color: var(--muted); background: #f4f4f8; font-size: 19px; line-height: 1; }
+    .modal form { display: grid; gap: 10px; }
+    .modal-error { min-height: 18px; margin: 0; color: var(--red); font-size: 12px; }
+    .demo-note { margin: 14px 0 0; padding: 10px 11px; border-radius: 10px; color: #777b90; background: #f7f7fa; font-size: 11px; }
+    .toast { position: fixed; z-index: 20; right: 20px; bottom: 20px; max-width: min(380px, calc(100vw - 40px)); padding: 12px 16px; border-radius: 12px; color: white; background: #272a40; box-shadow: 0 10px 25px rgba(20,22,50,.2); font-size: 13px; }
 
-        .todo-item:hover {
-            background-color: var(--item-hover);
-        }
-
-        .completed-text {
-            text-decoration: line-through;
-            opacity: 0.4;
-        }
-
-        .custom-checkbox {
-            width: 26px;
-            height: 26px;
-            border: 2px solid var(--accent-blue);
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .custom-checkbox.checked {
-            background-color: var(--accent-blue);
-        }
-
-        .custom-checkbox svg {
-            display: none;
-            color: white;
-            width: 16px;
-            height: 16px;
-        }
-
-        .custom-checkbox.checked svg {
-            display: block;
-        }
-
-        .tag-pill {
-            font-size: 0.7rem;
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-
-        .icon-btn {
-            cursor: pointer;
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-            color: var(--text-main);
-            position: relative;
-        }
-
-        .icon-btn:hover {
-            transform: translateY(-2px);
-            background: var(--accent-blue);
-            color: white;
-        }
-
-        .delete-hint {
-            font-size: 10px;
-            position: absolute;
-            bottom: -18px;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            color: #ef4444;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-        }
-        .tag-selector:hover .delete-hint {
-            opacity: 1;
-        }
-
-        /* Dropdown menu */
-        .dropdown-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 8px;
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            min-width: 160px;
-            z-index: 30;
-            overflow: hidden;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.2s ease;
-        }
-        .dropdown-menu.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-        .dropdown-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            transition: background 0.15s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-            color: var(--text-main);
-        }
-        .dropdown-item:hover {
-            background: var(--item-hover);
-        }
-        .dropdown-item.danger {
-            color: #ef4444;
-        }
-
-        /* Export modal */
-        .modal-overlay {
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(8px);
-        }
-        .modal-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 28px;
-            padding: 24px;
-            max-width: 360px;
-            width: 90%;
-        }
-
-        /* Responsive touch improvements */
-        @media (max-width: 640px) {
-            .glass-card {
-                border-radius: 24px;
-            }
-            .icon-btn {
-                width: 40px;
-                height: 40px;
-                border-radius: 12px;
-            }
-            .custom-checkbox {
-                width: 24px;
-                height: 24px;
-                border-radius: 7px;
-            }
-        }
-    </style>
+    @media (max-width: 620px) {
+      .page { width: min(100% - 22px, 900px); padding-top: 20px; }
+      .topbar { margin-bottom: 38px; }
+      .top-actions { gap: 6px; }
+      .top-actions .button { padding: 9px 11px; font-size: 12px; }
+      .composer { padding: 13px; }
+      .composer-main { flex-direction: column; }
+      .composer-main .button { width: 100%; }
+      .composer-fields { grid-template-columns: 1fr; }
+      .overview { padding: 16px; }
+      .list-panel { padding: 16px 14px 10px; }
+      .list-toolbar { align-items: flex-start; flex-direction: column; }
+      .toolbar-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+      .search-input { width: 100%; }
+      .upgrade-card { align-items: flex-start; flex-direction: column; }
+      .upgrade-card .button { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
 </head>
-<body class="p-3 sm:p-4 md:p-8 lg:p-12 flex justify-center items-start">
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand" aria-label="Daymark home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+        </span>
+        <span>daymark</span>
+      </div>
+      <div class="top-actions">
+        <span class="plan-pill" id="planPill"><span class="plan-dot"></span><span id="planLabel">Free plan</span></span>
+        <button class="button button-primary button-small" id="openUpgradeButton" type="button">Unlock Pro</button>
+      </div>
+    </header>
 
-    <div class="glass-card w-full max-w-2xl overflow-hidden">
-        <!-- Header Section -->
-        <div class="p-4 sm:p-5 md:p-6 lg:p-8 border-b border-slate-700/50">
-            <div class="flex justify-between items-start gap-2">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Daily Tasks</h1>
-                    <p class="text-sm sm:text-base opacity-70 mt-1 sm:mt-2" id="stats-text">Keep track of your productivity</p>
-                </div>
-                <div class="flex gap-1 sm:gap-2 relative">
-                    <!-- Three-dot menu button (replaces import/export) -->
-                    <button id="menu-btn" class="icon-btn" title="Menu">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="12" cy="5" r="1"></circle>
-                            <circle cx="12" cy="19" r="1"></circle>
-                        </svg>
-                    </button>
-                    <!-- Dropdown menu -->
-                    <div id="dropdown-menu" class="dropdown-menu">
-                        <div id="import-option" class="dropdown-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            Import JSON
-                        </div>
-                        <div id="export-option" class="dropdown-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            Export JSON...
-                        </div>
-                    </div>
-                    <button id="theme-btn" class="icon-btn">
-                        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="mt-5 sm:mt-6 md:mt-8">
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="todo-input" 
-                        class="flex-1 px-4 py-3 sm:px-5 sm:py-4 text-base sm:text-lg rounded-xl sm:rounded-2xl bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm font-normal"
-                        placeholder="What needs to be done?"
-                        maxlength="100">
-                    <button id="add-btn" 
-                        class="bg-[var(--accent-blue)] hover:opacity-90 text-white px-5 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg transition-all transform active:scale-95 shadow-lg whitespace-nowrap">
-                        Add Task
-                    </button>
-                </div>
-                
-                <div class="flex items-center gap-2 sm:gap-3 mt-4 sm:mt-5">
-                    <div id="tag-container" class="flex gap-2 sm:gap-3 overflow-x-auto pb-4 sm:pb-6 scrollbar-hide">
-                        <!-- Tags rendered by JS -->
-                    </div>
-                    <button id="add-tag-btn" class="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--input-bg)] text-[var(--text-sub)] hover:bg-[var(--accent-blue)] hover:text-white transition-all mb-4 sm:mb-6" title="Add Custom Category">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                </div>
-            </div>
+    <section class="intro" aria-labelledby="pageTitle">
+      <p class="eyebrow">A little more focused</p>
+      <h1 id="pageTitle">Make room for<br>what matters.</h1>
+      <p class="subtitle">A calm place to collect your tasks and make steady progress.</p>
+    </section>
+
+    <section class="panel composer" aria-label="Add a task">
+      <form id="taskForm">
+        <div class="composer-main">
+          <input class="text-input" id="taskInput" type="text" maxlength="120" placeholder="What needs to get done?" autocomplete="off" required aria-label="Task title">
+          <button class="button button-primary" type="submit">+ Add task</button>
         </div>
-
-        <!-- List Section -->
-        <div id="todo-list" class="max-h-[500px] sm:max-h-[550px] md:max-h-[600px] overflow-y-auto min-h-[250px] sm:min-h-[300px]">
-            <div id="empty-state" class="p-16 sm:p-20 md:p-24 text-center opacity-40">
-                <svg class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                <p class="text-lg sm:text-xl font-semibold">No tasks found here.</p>
-                <p class="text-xs sm:text-sm mt-1">Add a task or create a new category.</p>
-            </div>
-        </div>
-
-        <!-- Footer Progress -->
-        <div class="p-4 sm:p-5 md:p-6 bg-[var(--footer-bg)] text-sm flex flex-wrap justify-between items-center gap-3 px-4 sm:px-6 md:px-8 border-t border-[var(--border-color)]">
-            <div class="flex items-center gap-3 sm:gap-4 flex-1 min-w-[180px]">
-                <div class="w-full h-2 sm:h-2.5 bg-slate-400/20 rounded-full overflow-hidden">
-                    <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-700" style="width: 0%"></div>
-                </div>
-                <span id="progress-percent" class="font-bold opacity-60 min-w-[45px] text-sm sm:text-base">0%</span>
-            </div>
-            <button id="clear-completed" class="opacity-60 hover:text-red-500 font-bold transition-colors text-sm sm:text-base whitespace-nowrap">Clear Completed</button>
-        </div>
-    </div>
-
-    <!-- Hidden File Input for Import -->
-    <input type="file" id="file-import-input" class="hidden" accept=".json">
-
-    <!-- Custom Category Modal -->
-    <div id="tag-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4 z-50">
-        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] p-6 sm:p-8 rounded-3xl w-full max-w-sm shadow-2xl mx-2">
-            <h2 class="text-xl font-bold mb-4 tracking-tight">New Category</h2>
-            <input type="text" id="new-tag-input" 
-                class="w-full px-4 py-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-main)] mb-6 outline-none font-medium"
-                placeholder="Category name..."
-                maxlength="15">
-            <div class="flex gap-3 justify-end">
-                <button id="modal-cancel" class="px-5 py-2 opacity-60 font-semibold hover:opacity-100 transition-colors">Cancel</button>
-                <button id="modal-confirm" class="px-6 py-2 bg-[var(--accent-blue)] text-white rounded-xl font-bold shadow-lg">Create</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Export Filter Modal -->
-    <div id="export-modal" class="fixed inset-0 modal-overlay hidden items-center justify-center p-4 z-50">
-        <div class="modal-card">
-            <h2 class="text-xl font-bold mb-4 tracking-tight">Export Tasks</h2>
-            <p class="text-sm opacity-70 mb-4">Choose which category to export</p>
-            <select id="export-category-select" class="w-full px-4 py-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border-color)] text-[var(--text-main)] mb-6 outline-none font-medium">
-                <option value="__ALL__">All categories</option>
-                <!-- Options populated dynamically -->
+        <div class="composer-fields" id="proFields" hidden>
+          <label><span class="field-label">Category</span>
+            <select class="select-input" id="categoryInput">
+              <option>Personal</option><option>Work</option><option>Study</option><option>Other</option>
             </select>
-            <div class="flex gap-3 justify-end">
-                <button id="export-cancel" class="px-5 py-2 opacity-60 font-semibold hover:opacity-100 transition-colors">Cancel</button>
-                <button id="export-confirm" class="px-6 py-2 bg-[var(--accent-blue)] text-white rounded-xl font-bold shadow-lg">Export</button>
-            </div>
+          </label>
+          <label><span class="field-label">Due date</span>
+            <input class="text-input" id="dueInput" type="date" aria-label="Due date">
+          </label>
+          <label><span class="field-label">Priority</span>
+            <select class="select-input" id="priorityInput">
+              <option value="medium">Medium priority</option><option value="high">High priority</option><option value="low">Low priority</option>
+            </select>
+          </label>
         </div>
-    </div>
+      </form>
+    </section>
 
-    <script>
-        (function(){
-            const input = document.getElementById('todo-input');
-            const addBtn = document.getElementById('add-btn');
-            const todoList = document.getElementById('todo-list');
-            const statsText = document.getElementById('stats-text');
-            const progressBar = document.getElementById('progress-bar');
-            const progressPercent = document.getElementById('progress-percent');
-            const emptyState = document.getElementById('empty-state');
-            const clearCompletedBtn = document.getElementById('clear-completed');
-            const tagContainer = document.getElementById('tag-container');
-            const themeBtn = document.getElementById('theme-btn');
-            const themeIcon = document.getElementById('theme-icon');
-            const fileImportInput = document.getElementById('file-import-input');
-            
-            // Menu elements
-            const menuBtn = document.getElementById('menu-btn');
-            const dropdown = document.getElementById('dropdown-menu');
-            const importOption = document.getElementById('import-option');
-            const exportOption = document.getElementById('export-option');
+    <section class="panel overview" aria-label="Task overview">
+      <div class="stats">
+        <div><span class="stat-label">Total tasks</span><strong class="stat-value" id="totalCount">0</strong></div>
+        <div><span class="stat-label">In progress</span><strong class="stat-value" id="activeCount">0</strong></div>
+        <div><span class="stat-label">Completed</span><strong class="stat-value" id="completedCount">0</strong></div>
+      </div>
+      <div class="progress-head"><span>Overall progress</span><strong id="progressLabel">0%</strong></div>
+      <div class="progress-track" role="progressbar" id="progressBar" aria-label="Task completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-fill" id="progressFill"></div></div>
+    </section>
 
-            // Export modal elements
-            const exportModal = document.getElementById('export-modal');
-            const exportCategorySelect = document.getElementById('export-category-select');
-            const exportCancel = document.getElementById('export-cancel');
-            const exportConfirm = document.getElementById('export-confirm');
+    <section class="panel list-panel" aria-labelledby="listHeading">
+      <div class="list-toolbar">
+        <h2 id="listHeading">Your tasks</h2>
+        <div class="toolbar-right">
+          <input class="text-input search-input" id="searchInput" type="search" placeholder="Search tasks…" aria-label="Search tasks" hidden>
+          <div class="filters" role="group" aria-label="Filter tasks">
+            <button class="filter-button" type="button" data-filter="all" aria-pressed="true">All</button>
+            <button class="filter-button" type="button" data-filter="active" aria-pressed="false">Active</button>
+            <button class="filter-button" type="button" data-filter="completed" aria-pressed="false">Done</button>
+          </div>
+        </div>
+      </div>
+      <ul class="task-list" id="taskList" aria-live="polite"></ul>
+      <div class="empty-state" id="emptyState">
+        <span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+        <strong id="emptyTitle">Nothing on your list yet</strong>
+        <p id="emptyCopy">Add your first task above to get started.</p>
+      </div>
+      <div class="list-footer">
+        <span id="listCount">0 tasks</span>
+        <div>
+          <button class="button button-quiet button-small" id="exportButton" type="button" hidden>Export CSV</button>
+          <button class="button button-quiet button-small" id="clearCompletedButton" type="button">Clear completed</button>
+        </div>
+      </div>
+    </section>
 
-            // State Management
-            let todos = JSON.parse(localStorage.getItem('my-todo-list-v2')) || [];
-            let customTags = JSON.parse(localStorage.getItem('my-todo-tags-v2')) || [];
-            let activeTag = 'All';
-            let currentTheme = localStorage.getItem('my-todo-theme') || 'dark';
+    <section class="upgrade-card" id="upgradeCard" aria-label="Upgrade to Pro">
+      <div>
+        <h3>Make your workflow work harder.</h3>
+        <p>Get unlimited tasks, priorities, due dates, categories, search and CSV export.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap">
+        <span class="price">Pro · $20</span>
+        <button class="button button-primary button-small" id="upgradeCardButton" type="button">Explore Pro</button>
+      </div>
+    </section>
 
-            // Icons
-            const SUN_ICON = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-            const MOON_ICON = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+    <p class="footer-note">Your tasks are saved in this browser on this device.</p>
+  </main>
 
-            const colorRotation = [
-                'bg-blue-500/10 text-blue-500 border border-blue-500/30',
-                'bg-purple-500/10 text-purple-500 border border-purple-500/30',
-                'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30',
-                'bg-rose-500/10 text-rose-500 border border-rose-500/30',
-                'bg-orange-500/10 text-orange-500 border border-orange-500/30'
-            ];
+  <div class="modal-backdrop" id="upgradeModal" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalCopy">
+      <div class="modal-top">
+        <div>
+          <div class="modal-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 14.8 8.7 21 9.6 16.5 14 17.6 20.2 12 17.3 6.4 20.2 7.5 14 3 9.6 9.2 8.7 12 3Z"/></svg></div>
+          <h2 id="modalTitle">Unlock Daymark Pro</h2>
+        </div>
+        <button class="close-button" id="closeModalButton" type="button" aria-label="Close dialog">×</button>
+      </div>
+      <p class="modal-copy" id="modalCopy">Pro is priced at <strong>$20</strong> and unlocks unlimited tasks, categories, due dates, priorities, search and CSV export. Enter your access password to activate Pro in this browser.</p>
+      <form id="passwordForm">
+        <label for="passwordInput" class="field-label">Access password</label>
+        <input class="text-input" id="passwordInput" type="password" autocomplete="current-password" placeholder="Enter password" required>
+        <p class="modal-error" id="passwordError" role="alert"></p>
+        <button class="button button-primary" type="submit">Activate Pro</button>
+      </form>
+      <p class="demo-note">Demo mode: this unlock does not process a payment. The password is stored in this single HTML file, so this is not secure payment or licensing protection.</p>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-            function saveToStorage() {
-                localStorage.setItem('my-todo-list-v2', JSON.stringify(todos));
-                localStorage.setItem('my-todo-tags-v2', JSON.stringify(customTags));
-                localStorage.setItem('my-todo-theme', currentTheme);
-            }
+  <script>
+    'use strict';
 
-            function toggleTheme() {
-                currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                applyTheme();
-                saveToStorage();
-            }
+    // DEMO ONLY: A password embedded in client-side JavaScript can be read by anyone
+    // who opens this file or inspects the browser. Use server-side verification for production.
+    const PRO_ACCESS_PASSWORD = 'hello@dmin122130147425160258728190369';
+    const TASKS_STORAGE_KEY = 'daymark.tasks.v1';
+    const PRO_STORAGE_KEY = 'daymark.pro.v1';
+    const FREE_ACTIVE_TASK_LIMIT = 5;
 
-            function applyTheme() {
-                document.documentElement.setAttribute('data-theme', currentTheme);
-                themeIcon.innerHTML = currentTheme === 'dark' ? SUN_ICON : MOON_ICON;
-            }
+    const elements = {
+      taskForm: document.getElementById('taskForm'),
+      taskInput: document.getElementById('taskInput'),
+      proFields: document.getElementById('proFields'),
+      categoryInput: document.getElementById('categoryInput'),
+      dueInput: document.getElementById('dueInput'),
+      priorityInput: document.getElementById('priorityInput'),
+      taskList: document.getElementById('taskList'),
+      emptyState: document.getElementById('emptyState'),
+      emptyTitle: document.getElementById('emptyTitle'),
+      emptyCopy: document.getElementById('emptyCopy'),
+      totalCount: document.getElementById('totalCount'),
+      activeCount: document.getElementById('activeCount'),
+      completedCount: document.getElementById('completedCount'),
+      progressLabel: document.getElementById('progressLabel'),
+      progressBar: document.getElementById('progressBar'),
+      progressFill: document.getElementById('progressFill'),
+      listCount: document.getElementById('listCount'),
+      planPill: document.getElementById('planPill'),
+      planLabel: document.getElementById('planLabel'),
+      searchInput: document.getElementById('searchInput'),
+      exportButton: document.getElementById('exportButton'),
+      clearCompletedButton: document.getElementById('clearCompletedButton'),
+      upgradeCard: document.getElementById('upgradeCard'),
+      upgradeModal: document.getElementById('upgradeModal'),
+      passwordForm: document.getElementById('passwordForm'),
+      passwordInput: document.getElementById('passwordInput'),
+      passwordError: document.getElementById('passwordError'),
+      toast: document.getElementById('toast')
+    };
 
-            function getTagStyle(tagName) {
-                const custom = customTags.find(t => t.name === tagName);
-                return custom ? custom.style : 'bg-blue-500/10 text-blue-500 border border-blue-500/30';
-            }
+    let tasks = loadTasks();
+    let isPro = readProStatus();
+    let activeFilter = 'all';
+    let toastTimeout = null;
+    let previousFocus = null;
 
-            // Export System with category filter
-            function exportData(categoryFilter = null) {
-                let exportTodos = todos;
-                if (categoryFilter && categoryFilter !== '__ALL__') {
-                    exportTodos = todos.filter(t => t.tag === categoryFilter);
-                }
-                const data = {
-                    todos: exportTodos,
-                    customTags,
-                    theme: currentTheme,
-                    exportedAt: new Date().toISOString(),
-                    filter: categoryFilter || 'all'
-                };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                const filterText = categoryFilter && categoryFilter !== '__ALL__' ? `-${categoryFilter}` : '';
-                a.download = `todo-backup${filterText}-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
+    function safeStorageGet(key) {
+      try { return window.localStorage.getItem(key); }
+      catch (error) { console.warn('Local storage is unavailable:', error); return null; }
+    }
 
-            // Import System
-            function importData(e) {
-                const file = e.target.files[0];
-                if (!file) return;
+    function safeStorageSet(key, value) {
+      try { window.localStorage.setItem(key, value); return true; }
+      catch (error) { console.warn('Could not save data:', error); showToast('Browser storage is unavailable. Your changes may not persist.'); return false; }
+    }
 
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const imported = JSON.parse(event.target.result);
-                        if (imported.todos && Array.isArray(imported.todos)) {
-                            todos = imported.todos;
-                            customTags = imported.customTags || [];
-                            currentTheme = imported.theme || currentTheme;
-                            
-                            applyTheme();
-                            renderTags();
-                            render();
-                            saveToStorage();
-                            alert('Data imported successfully!');
-                        } else {
-                            throw new Error('Invalid file format');
-                        }
-                    } catch (err) {
-                        alert('Error importing data. Please check the file format.');
-                        console.error(err);
-                    }
-                    fileImportInput.value = ''; // Reset input
-                };
-                reader.readAsText(file);
-            }
+    function loadTasks() {
+      const raw = safeStorageGet(TASKS_STORAGE_KEY);
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(item => item && typeof item.title === 'string').map(item => ({
+          id: typeof item.id === 'string' ? item.id : createId(),
+          title: item.title.slice(0, 120),
+          completed: Boolean(item.completed),
+          createdAt: Number(item.createdAt) || Date.now(),
+          category: ['Personal', 'Work', 'Study', 'Other'].includes(item.category) ? item.category : 'Personal',
+          dueDate: typeof item.dueDate === 'string' ? item.dueDate : '',
+          priority: ['low', 'medium', 'high'].includes(item.priority) ? item.priority : 'medium'
+        }));
+      } catch (error) {
+        console.warn('Saved tasks could not be read:', error);
+        return [];
+      }
+    }
 
-            function removeCategory(tagName) {
-                if (tagName === 'All') return;
-                if (confirm(`Remove category "${tagName}"? Tasks will be moved to "General".`)) {
-                    todos = todos.map(todo => (todo.tag === tagName ? { ...todo, tag: 'General' } : todo));
-                    customTags = customTags.filter(t => t.name !== tagName);
-                    if (activeTag === tagName) activeTag = 'All';
-                    saveToStorage();
-                    renderTags();
-                    render();
-                }
-            }
+    function readProStatus() { return safeStorageGet(PRO_STORAGE_KEY) === 'true'; }
+    function saveTasks() { safeStorageSet(TASKS_STORAGE_KEY, JSON.stringify(tasks)); }
+    function createId() {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
 
-            function renderTags() {
-                let html = `<button class="tag-selector px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full border transition-all font-bold whitespace-nowrap ${activeTag === 'All' ? 'bg-[var(--accent-blue)] text-white border-blue-500' : 'bg-[var(--input-bg)] opacity-60'}" data-tag="All">All</button>`;
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.hidden = false;
+      window.clearTimeout(toastTimeout);
+      toastTimeout = window.setTimeout(() => { elements.toast.hidden = true; }, 2800);
+    }
 
-                customTags.forEach(tag => {
-                    const isActive = activeTag === tag.name;
-                    html += `
-                        <button class="tag-selector relative px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full border transition-all font-bold whitespace-nowrap ${isActive ? 'bg-[var(--accent-blue)] text-white border-blue-500' : 'bg-[var(--input-bg)] opacity-60'}" 
-                            data-tag="${tag.name}" 
-                            oncontextmenu="event.preventDefault(); window.removeCategory('${tag.name}')">
-                            ${tag.name}
-                            <span class="delete-hint">Right-click to delete</span>
-                        </button>
-                    `;
-                });
+    function openUpgradeModal(message) {
+      previousFocus = document.activeElement;
+      elements.passwordError.textContent = message || '';
+      elements.passwordInput.value = '';
+      elements.upgradeModal.hidden = false;
+      window.setTimeout(() => elements.passwordInput.focus(), 0);
+    }
 
-                tagContainer.innerHTML = html;
-                document.querySelectorAll('.tag-selector').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        activeTag = btn.dataset.tag;
-                        renderTags();
-                        render();
-                    });
-                });
-            }
+    function closeUpgradeModal() {
+      elements.upgradeModal.hidden = true;
+      if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
+    }
 
-            window.removeCategory = removeCategory;
+    function updateModeUI() {
+      elements.planPill.classList.toggle('pro', isPro);
+      elements.planLabel.textContent = isPro ? 'Pro plan' : 'Free plan';
+      document.getElementById('openUpgradeButton').textContent = isPro ? 'Pro active' : 'Unlock Pro';
+      document.getElementById('openUpgradeButton').disabled = isPro;
+      document.getElementById('openUpgradeButton').classList.toggle('button-secondary', isPro);
+      elements.proFields.hidden = !isPro;
+      elements.searchInput.hidden = !isPro;
+      elements.exportButton.hidden = !isPro;
+      elements.upgradeCard.hidden = isPro;
+      elements.clearCompletedButton.hidden = tasks.every(task => !task.completed);
+    }
 
-            function render() {
-                const currentItems = todoList.querySelectorAll('.todo-item');
-                currentItems.forEach(item => item.remove());
+    function getVisibleTasks() {
+      const query = isPro ? elements.searchInput.value.trim().toLocaleLowerCase() : '';
+      return tasks.filter(task => {
+        const matchesFilter = activeFilter === 'all' || (activeFilter === 'active' && !task.completed) || (activeFilter === 'completed' && task.completed);
+        const searchable = `${task.title} ${task.category}`.toLocaleLowerCase();
+        return matchesFilter && (!query || searchable.includes(query));
+      });
+    }
 
-                const filteredTodos = activeTag === 'All' ? todos : todos.filter(t => t.tag === activeTag);
+    function makeTag(text, className) {
+      const tag = document.createElement('span');
+      tag.className = `tag${className ? ` ${className}` : ''}`;
+      tag.textContent = text;
+      return tag;
+    }
 
-                if (filteredTodos.length === 0) {
-                    emptyState.style.display = 'block';
-                } else {
-                    emptyState.style.display = 'none';
-                    filteredTodos.forEach((todo) => {
-                        const originalIndex = todos.findIndex(t => t === todo);
-                        const div = document.createElement('div');
-                        div.className = 'todo-item p-4 sm:p-5 md:p-6 flex items-center justify-between group';
-                        div.innerHTML = `
-                            <div class="flex items-center gap-4 sm:gap-5 flex-1 cursor-pointer" onclick="window.toggleTodo(${originalIndex})">
-                                <div class="custom-checkbox ${todo.completed ? 'checked' : ''}">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="text-base sm:text-lg font-semibold ${todo.completed ? 'completed-text' : ''}">${todo.text}</span>
-                                    <span class="tag-pill w-fit mt-1.5 sm:mt-2 ${getTagStyle(todo.tag)}">${todo.tag || 'General'}</span>
-                                </div>
-                            </div>
-                            <button onclick="window.deleteTodo(${originalIndex})" class="opacity-0 group-hover:opacity-100 text-rose-500 transition-all p-2 sm:p-3">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                            </button>
-                        `;
-                        todoList.appendChild(div);
-                    });
-                }
+    function formatDueDate(dateString) {
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
 
-                updateStats();
-                saveToStorage();
-            }
+    function renderTask(task) {
+      const item = document.createElement('li');
+      item.className = `task-item${task.completed ? ' completed' : ''}`;
 
-            function updateStats() {
-                const completedCount = todos.filter(t => t.completed).length;
-                const total = todos.length;
-                const percentage = total === 0 ? 0 : Math.round((completedCount / total) * 100);
-                statsText.innerText = total === 0 ? "Your space is clear" : `${completedCount} of ${total} tasks finished`;
-                progressBar.style.width = `${percentage}%`;
-                progressPercent.innerText = `${percentage}%`;
-            }
+      const checkbox = document.createElement('input');
+      checkbox.className = 'task-check';
+      checkbox.type = 'checkbox';
+      checkbox.checked = task.completed;
+      checkbox.setAttribute('aria-label', `${task.completed ? 'Mark incomplete' : 'Complete'}: ${task.title}`);
+      checkbox.addEventListener('change', () => {
+        task.completed = checkbox.checked;
+        saveTasks();
+        render();
+      });
 
-            function addTodo() {
-                const text = input.value.trim();
-                if (text) {
-                    let taskTag = activeTag === 'All' ? (customTags.length > 0 ? customTags[0].name : 'General') : activeTag;
-                    todos.push({ text, completed: false, tag: taskTag });
-                    input.value = '';
-                    render();
-                }
-            }
+      const content = document.createElement('div');
+      content.className = 'task-content';
+      const title = document.createElement('span');
+      title.className = 'task-title';
+      title.textContent = task.title;
+      content.appendChild(title);
 
-            // Populate export category dropdown
-            function populateExportCategories() {
-                let options = '<option value="__ALL__">All categories</option>';
-                customTags.forEach(tag => {
-                    options += `<option value="${tag.name}">${tag.name}</option>`;
-                });
-                exportCategorySelect.innerHTML = options;
-            }
+      if (isPro) {
+        const meta = document.createElement('div');
+        meta.className = 'task-meta';
+        meta.appendChild(makeTag(task.category));
+        meta.appendChild(makeTag(`${task.priority[0].toUpperCase()}${task.priority.slice(1)} priority`, `priority-${task.priority}`));
+        if (task.dueDate) {
+          const due = new Date(`${task.dueDate}T00:00:00`);
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const dueTag = makeTag(`Due ${formatDueDate(task.dueDate)}`);
+          if (!task.completed && due < today) dueTag.classList.add('overdue');
+          else if (!task.completed && due.getTime() === today.getTime()) dueTag.classList.add('due-soon');
+          meta.appendChild(dueTag);
+        }
+        content.appendChild(meta);
+      }
 
-            // Toggle dropdown menu
-            function toggleDropdown(show) {
-                if (show === undefined) {
-                    dropdown.classList.toggle('show');
-                } else {
-                    dropdown.classList[show ? 'add' : 'remove']('show');
-                }
-            }
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'delete-button';
+      deleteButton.type = 'button';
+      deleteButton.setAttribute('aria-label', `Delete task: ${task.title}`);
+      deleteButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>';
+      deleteButton.addEventListener('click', () => {
+        tasks = tasks.filter(entry => entry.id !== task.id);
+        saveTasks();
+        render();
+        showToast('Task deleted.');
+      });
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
-                    toggleDropdown(false);
-                }
-            });
+      item.append(checkbox, content, deleteButton);
+      return item;
+    }
 
-            // Menu button click
-            menuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleDropdown();
-            });
+    function render() {
+      const total = tasks.length;
+      const completed = tasks.filter(task => task.completed).length;
+      const active = total - completed;
+      const percent = total ? Math.round((completed / total) * 100) : 0;
 
-            // Import option
-            importOption.addEventListener('click', () => {
-                toggleDropdown(false);
-                fileImportInput.click();
-            });
+      elements.totalCount.textContent = String(total);
+      elements.activeCount.textContent = String(active);
+      elements.completedCount.textContent = String(completed);
+      elements.progressLabel.textContent = `${percent}%`;
+      elements.progressFill.style.width = `${percent}%`;
+      elements.progressBar.setAttribute('aria-valuenow', String(percent));
 
-            // Export option: open modal
-            exportOption.addEventListener('click', () => {
-                toggleDropdown(false);
-                populateExportCategories();
-                exportModal.classList.remove('hidden');
-                exportModal.classList.add('flex');
-            });
+      elements.taskList.replaceChildren();
+      const visible = getVisibleTasks();
+      visible.forEach(task => elements.taskList.appendChild(renderTask(task)));
+      elements.emptyState.hidden = visible.length > 0;
+      if (visible.length === 0) {
+        const hasTasks = tasks.length > 0;
+        elements.emptyTitle.textContent = hasTasks ? 'No matching tasks' : 'Nothing on your list yet';
+        elements.emptyCopy.textContent = hasTasks ? 'Try another filter or search term.' : 'Add your first task above to get started.';
+      }
+      elements.listCount.textContent = `${visible.length} ${visible.length === 1 ? 'task' : 'tasks'} shown`;
+      elements.clearCompletedButton.hidden = completed === 0;
+      updateModeUI();
+    }
 
-            // Export modal handlers
-            exportCancel.addEventListener('click', () => {
-                exportModal.classList.add('hidden');
-                exportModal.classList.remove('flex');
-            });
+    elements.taskForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const title = elements.taskInput.value.trim();
+      if (!title) { elements.taskInput.focus(); return; }
 
-            exportConfirm.addEventListener('click', () => {
-                const selectedCategory = exportCategorySelect.value;
-                exportData(selectedCategory === '__ALL__' ? null : selectedCategory);
-                exportModal.classList.add('hidden');
-                exportModal.classList.remove('flex');
-            });
+      const activeTasks = tasks.filter(task => !task.completed).length;
+      if (!isPro && activeTasks >= FREE_ACTIVE_TASK_LIMIT) {
+        openUpgradeModal(`The Free plan allows up to ${FREE_ACTIVE_TASK_LIMIT} active tasks. Unlock Pro for unlimited tasks.`);
+        return;
+      }
 
-            // Close modals on overlay click
-            exportModal.addEventListener('click', (e) => {
-                if (e.target === exportModal) {
-                    exportModal.classList.add('hidden');
-                    exportModal.classList.remove('flex');
-                }
-            });
+      tasks.unshift({
+        id: createId(),
+        title,
+        completed: false,
+        createdAt: Date.now(),
+        category: isPro ? elements.categoryInput.value : 'Personal',
+        dueDate: isPro ? elements.dueInput.value : '',
+        priority: isPro ? elements.priorityInput.value : 'medium'
+      });
+      saveTasks();
+      elements.taskForm.reset();
+      elements.taskInput.focus();
+      render();
+      showToast('Task added.');
+    });
 
-            // Expose functions globally for onclick handlers
-            window.toggleTodo = (i) => { todos[i].completed = !todos[i].completed; render(); };
-            window.deleteTodo = (i) => { todos.splice(i, 1); render(); };
+    document.querySelectorAll('[data-filter]').forEach(button => {
+      button.addEventListener('click', () => {
+        activeFilter = button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach(filterButton => {
+          filterButton.setAttribute('aria-pressed', String(filterButton === button));
+        });
+        render();
+      });
+    });
 
-            addBtn.addEventListener('click', addTodo);
-            input.addEventListener('keypress', (e) => e.key === 'Enter' && addTodo());
-            themeBtn.addEventListener('click', toggleTheme);
-            clearCompletedBtn.addEventListener('click', () => { todos = todos.filter(t => !t.completed); render(); });
-            
-            fileImportInput.addEventListener('change', importData);
+    elements.searchInput.addEventListener('input', render);
+    elements.clearCompletedButton.addEventListener('click', () => {
+      const completedCount = tasks.filter(task => task.completed).length;
+      if (!completedCount) return;
+      tasks = tasks.filter(task => !task.completed);
+      saveTasks();
+      render();
+      showToast(`${completedCount} completed ${completedCount === 1 ? 'task' : 'tasks'} cleared.`);
+    });
 
-            // Category Modal Logic
-            const tagModal = document.getElementById('tag-modal');
-            const newTagInput = document.getElementById('new-tag-input');
-            const modalConfirm = document.getElementById('modal-confirm');
-            const modalCancel = document.getElementById('modal-cancel');
+    function exportCSV() {
+      if (!isPro) return;
+      const columns = ['Task', 'Completed', 'Category', 'Priority', 'Due date'];
+      const escapeCSV = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+      const rows = tasks.map(task => [task.title, task.completed ? 'Yes' : 'No', task.category, task.priority, task.dueDate]);
+      const csv = [columns, ...rows].map(row => row.map(escapeCSV).join(',')).join('\r\n');
+      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'daymark-tasks.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast('Your CSV export is ready.');
+    }
+    elements.exportButton.addEventListener('click', exportCSV);
 
-            document.getElementById('add-tag-btn').addEventListener('click', () => {
-                tagModal.classList.remove('hidden');
-                tagModal.classList.add('flex');
-                newTagInput.focus();
-            });
+    function showUpgrade() {
+      if (!isPro) openUpgradeModal('');
+    }
+    document.getElementById('openUpgradeButton').addEventListener('click', showUpgrade);
+    document.getElementById('upgradeCardButton').addEventListener('click', showUpgrade);
+    document.getElementById('closeModalButton').addEventListener('click', closeUpgradeModal);
+    elements.upgradeModal.addEventListener('click', event => {
+      if (event.target === elements.upgradeModal) closeUpgradeModal();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !elements.upgradeModal.hidden) closeUpgradeModal();
+    });
 
-            modalCancel.addEventListener('click', () => {
-                tagModal.classList.add('hidden');
-                tagModal.classList.remove('flex');
-                newTagInput.value = '';
-            });
+    elements.passwordForm.addEventListener('submit', event => {
+      event.preventDefault();
+      if (elements.passwordInput.value === PRO_ACCESS_PASSWORD) {
+        isPro = true;
+        safeStorageSet(PRO_STORAGE_KEY, 'true');
+        closeUpgradeModal();
+        render();
+        showToast('Pro is now active in this browser.');
+      } else {
+        elements.passwordError.textContent = 'That password is not correct. Please try again.';
+        elements.passwordInput.select();
+      }
+    });
 
-            modalConfirm.addEventListener('click', () => {
-                const name = newTagInput.value.trim();
-                if (name && name.toLowerCase() !== 'all' && !customTags.find(t => t.name.toLowerCase() === name.toLowerCase())) {
-                    customTags.push({ name, style: colorRotation[customTags.length % colorRotation.length] });
-                    activeTag = name;
-                    renderTags();
-                    render();
-                    saveToStorage();
-                }
-                modalCancel.click();
-            });
-
-            // Initial setup
-            applyTheme();
-            renderTags();
-            render();
-        })();
-    </script>
+    render();
+  </script>
 </body>
 </html>
